@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Import / Export{% endblock %}
+{% block content %}
+<h2 class="mb-3"><i class="fa-solid fa-file-csv text-primary me-2"></i>Data import &amp; export</h2>
+
+{% if result %}
+  {% if result.fatal %}
+    <div class="alert alert-danger"><strong>Import failed.</strong> {{ result.fatal }}</div>
+  {% else %}
+    <div class="alert alert-{{ 'success' if result.imported and not result.skipped else 'warning' if result.imported else 'danger' }}">
+      <strong>Import finished:</strong> {{ result.imported }} imported, {{ result.skipped }} skipped.
+      {% if result.skipped %}Rows with problems were <strong>not</strong> added; details are below.{% endif %}</div>
+    {% if result.errors %}
+    <div class="card mb-4 border-danger"><div class="card-header text-danger">Rows that were not imported</div>
+      <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>CSV line</th><th>Roll no.</th><th>Problem(s)</th></tr></thead>
+        <tbody>{% for e in result.errors %}<tr><td>{{ e.line }}</td><td>{{ e.roll }}</td><td>{{ e.messages|join(' ') }}</td></tr>{% endfor %}</tbody></table></div></div>
+    {% endif %}
+  {% endif %}
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card p-4 mb-4">
+      <h5><i class="fa-solid fa-upload me-2"></i>Import students (CSV)</h5>
+      <p class="small text-muted">Required columns: <code>name, roll_number, department, semester, attendance, internal_marks,
+        assignment_marks, previous_semester, study_hours, practical_marks</code>. Maximums: internal {{ cfg.MAX_INTERNAL }},
+        assignment {{ cfg.MAX_ASSIGNMENT }}, practical {{ cfg.MAX_PRACTICAL }}; attendance and previous semester are percentages.
+        Duplicate roll numbers and invalid rows are skipped and reported.</p>
+      <form method="post" action="{{ url_for('csv_import') }}" enctype="multipart/form-data" class="d-flex gap-2 flex-wrap">
+        <input type="file" name="file" accept=".csv" class="form-control" style="max-width:360px" required>
+        <button class="btn btn-brand"><i class="fa-solid fa-cloud-arrow-up me-1"></i>Upload &amp; validate</button>
+      </form>
+      <a class="mt-3 d-inline-block" href="{{ url_for('csv_template') }}"><i class="fa-solid fa-download me-1"></i>Download sample CSV template</a>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card p-4">
+      <h5><i class="fa-solid fa-download me-2"></i>Export</h5>
+      <div class="d-grid gap-2 mt-2">
+        <a class="btn btn-outline-primary" href="{{ url_for('csv_students') }}"><i class="fa-solid fa-users me-1"></i>Download student records</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('csv_predictions') }}"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Export prediction results</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

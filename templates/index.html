@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero mb-5">
+  <span class="badge bg-light text-dark mb-3">B.Tech Academic Project</span>
+  <h1 class="display-5">Student Academic Performance Prediction and AI-Based Analysis Using Machine Learning</h1>
+  <p class="lead mt-3">A web application that predicts whether a student's academic performance is
+    <strong>Low, Medium or High</strong> from attendance, marks and study habits, then explains the result and
+    suggests personalised, prioritised steps for improvement.</p>
+  <div class="d-flex flex-wrap gap-2 mt-4">
+    <a href="{{ url_for('login') }}" class="btn btn-light btn-lg"><i class="fa-solid fa-right-to-bracket me-2"></i>Login</a>
+    <a href="{{ url_for('student_register') }}" class="btn btn-outline-light btn-lg"><i class="fa-solid fa-user-plus me-2"></i>Student Registration</a>
+    <a href="{{ url_for('about') }}" class="btn btn-outline-light btn-lg"><i class="fa-solid fa-circle-info me-2"></i>About</a>
+  </div>
+</section>
+
+<section class="row g-4 mb-5">
+  <div class="col-lg-6">
+    <div class="card h-100 p-4">
+      <h4 class="mb-3"><i class="fa-solid fa-eye text-primary me-2"></i>System overview</h4>
+      <p>EduPredict stores student academic records, trains three machine-learning classifiers (Decision Tree,
+        Logistic Regression and Random Forest), picks the best one using cross-validation, and uses it to predict
+        a performance category for each student. A transparent rule-based engine then turns the student's weak
+        factors into practical recommendations.</p>
+      <p class="mb-0">Teachers get a dashboard with class-wide statistics; students get a clear breakdown of where to improve.</p>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100 p-4">
+      <h4 class="mb-3"><i class="fa-solid fa-bullseye text-primary me-2"></i>Main objectives</h4>
+      <ul class="mb-0">
+        <li>Predict performance category (Low / Medium / High) using machine learning.</li>
+        <li>Help students see their academic weaknesses early.</li>
+        <li>Give teachers statistics and visualisations of class performance.</li>
+        <li>Provide explainable, personalised recommendations that work offline.</li>
+        <li>Compare algorithms with standard evaluation metrics.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<h3 class="mb-3">Key features</h3>
+<section class="row g-3 mb-5">
+  {% set feats = [('chart-pie','Interactive dashboard','Live statistics and Chart.js charts built from the database.'),
+                  ('users','Student management','Add, edit, search, filter and delete records with validation.'),
+                  ('wand-magic-sparkles','ML prediction','Low / Medium / High with class probabilities and factor breakdown.'),
+                  ('lightbulb','Smart recommendations','Prioritised advice with the reason behind each rule.'),
+                  ('magnifying-glass-chart','Individual analysis','Compare a student with class averages and trends.'),
+                  ('file-csv','CSV import / export','Validated bulk upload, downloads and a template.'),
+                  ('flask','Model evaluation','Accuracy, precision, recall, F1, confusion matrices.'),
+                  ('database','SQLite storage','Zero-setup local database via SQLAlchemy.')] %}
+  {% for icon, title, text in feats %}
+  <div class="col-md-6 col-lg-3">
+    <div class="card h-100 p-3">
+      <div class="feature-icon mb-3"><i class="fa-solid fa-{{ icon }}"></i></div>
+      <h6>{{ title }}</h6><p class="small text-muted mb-0">{{ text }}</p>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
+<h3 class="mb-3">How the prediction works</h3>
+<section class="card p-4 mb-4">
+  <div class="row g-4">
+    {% set steps = [('Collect','Attendance, internal marks, assignment marks, previous semester %, daily study hours and practical marks.'),
+                    ('Preprocess','A scikit-learn pipeline handles missing values and scales features where needed.'),
+                    ('Classify','The best of Decision Tree, Logistic Regression and Random Forest predicts Low, Medium or High.'),
+                    ('Recommend','Rules compare each factor with thresholds and rank the weakest areas first.')] %}
+    {% for t, d in steps %}
+    <div class="col-md-6 col-lg-3 d-flex gap-3">
+      <span class="step-num">{{ loop.index }}</span>
+      <div><h6 class="mb-1">{{ t }}</h6><p class="small text-muted mb-0">{{ d }}</p></div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+<p class="disclaimer"><i class="fa-solid fa-triangle-exclamation me-1"></i>
+  The bundled model is trained on <strong>synthetic data</strong> with documented demonstration labelling rules. Validate against real
+  historical student outcomes before any practical use. Probabilities are model estimates, not guarantees.</p>
+{% endblock %}

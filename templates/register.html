@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Student Registration{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="card auth-card p-4 p-md-5">
+    <div class="text-center mb-4"><div class="auth-icon"><i class="fa-solid fa-user-graduate"></i></div><h2 class="fw-bold mt-3">Student registration</h2><p class="text-muted mb-0">Create an account linked to your existing student record.</p></div>
+    <form method="post">
+      <div class="mb-3"><label class="form-label fw-semibold">Full name</label><input class="form-control" name="name" required value="{{ request.form.get('name','') }}"></div>
+      <div class="mb-3"><label class="form-label fw-semibold">Roll number</label><input class="form-control" name="roll_number" required value="{{ request.form.get('roll_number','') }}"><div class="form-text">Your teacher must add your academic record before you register.</div></div>
+      <div class="mb-3"><label class="form-label fw-semibold">Email address</label><input class="form-control" type="email" name="email" required value="{{ request.form.get('email','') }}"></div>
+      <div class="mb-3"><label class="form-label fw-semibold">Password</label><input class="form-control" type="password" name="password" minlength="8" required></div>
+      <div class="mb-4"><label class="form-label fw-semibold">Confirm password</label><input class="form-control" type="password" name="confirm_password" minlength="8" required></div>
+      <button class="btn btn-brand btn-lg w-100" type="submit">Create student account</button>
+    </form>
+    <p class="text-center text-muted mt-4 mb-0">Already registered? <a href="{{ url_for('login') }}">Login</a></p>
+  </div>
+</div>
+{% endblock %}

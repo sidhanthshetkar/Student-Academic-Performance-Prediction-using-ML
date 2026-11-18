@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Model evaluation{% endblock %}
+{% block content %}
+{% set sel = m.models[m.selected_model] %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <h2 class="mb-0"><i class="fa-solid fa-flask text-primary me-2"></i>Model evaluation</h2>
+  <form method="post" action="{{ url_for('retrain') }}" data-confirm="Retrain all three models on the synthetic dataset?">
+    <button class="btn btn-outline-secondary"><i class="fa-solid fa-rotate me-1"></i>Retrain model</button></form>
+</div>
+
+<div class="card p-4 mb-4">
+  <div class="row align-items-center g-3">
+    <div class="col-lg-5"><div class="small text-muted">Selected model</div>
+      <div class="fs-3 fw-bold text-success"><i class="fa-solid fa-trophy me-2"></i>{{ m.selected_model }}</div>
+      <div class="small text-muted">{{ m.selection_criterion }}</div></div>
+    <div class="col-lg-7"><div class="row text-center g-2">
+      {% for k, name in [('accuracy','Accuracy'),('precision_macro','Precision (macro)'),('recall_macro','Recall (macro)'),('f1_macro','F1-score (macro)')] %}
+      <div class="col-6 col-md-3"><div class="card stat"><div class="name">{{ name }}</div><div class="value">{{ '%.1f'|format(sel[k]*100) }}%</div></div></div>
+      {% endfor %}</div></div>
+  </div>
+</div>
+
+<div class="disclaimer mb-4"><i class="fa-solid fa-triangle-exclamation me-1"></i>
+  Dataset: {{ m.dataset.type }} – {{ m.dataset.rows }} rows ({{ m.dataset.train_rows }} train / {{ m.dataset.test_rows }} test, stratified split).
+  {{ m.labelling_note }} Metrics below describe performance on this synthetic data only and do not predict accuracy on real students.</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-7"><div class="card h-100"><div class="card-header">Model comparison (test set, macro-averaged)</div>
+    <div class="table-responsive"><table class="table align-middle mb-0">
+      <thead><tr><th>Model</th><th>CV F1 (mean ± sd)</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead>
+      <tbody>{% for name, r in m.models.items() %}
+        <tr class="{{ 'table-success' if name == m.selected_model }}"><td class="fw-semibold">{{ name }}{% if name == m.selected_model %} <i class="fa-solid fa-check text-success"></i>{% endif %}</td>
+          <td>{{ '%.3f'|format(r.cv_f1_macro_mean) }} ± {{ '%.3f'|format(r.cv_f1_macro_std) }}</td>
+          <td>{{ '%.3f'|format(r.accuracy) }}</td><td>{{ '%.3f'|format(r.precision_macro) }}</td>
+          <td>{{ '%.3f'|format(r.recall_macro) }}</td><td>{{ '%.3f'|format(r.f1_macro) }}</td></tr>{% endfor %}</tbody></table></div></div></div>
+  <div class="col-lg-5"><div class="card h-100"><div class="card-header">Metrics chart</div><div class="card-body"><div class="chart-box"><canvas id="cmpChart"></canvas></div></div></div></div>
+</div>
+
+<ul class="nav nav-pills mb-3" role="tablist">
+  {% for name in m.models %}<li class="nav-item"><button class="nav-link {{ 'active' if name == m.selected_model }}" data-bs-toggle="pill" data-bs-target="#tab{{ loop.index }}">{{ name }}</button></li>{% endfor %}
+</ul>
+<div class="tab-content">
+  {% for name, r in m.models.items() %}
+  <div class="tab-pane fade {{ 'show active' if name == m.selected_model }}" id="tab{{ loop.index }}">
+    <div class="row g-4">
+      <div class="col-lg-5"><div class="card h-100"><div class="card-header">Confusion matrix – {{ name }}</div><div class="card-body">
+        <table class="table table-bordered cm mb-1">
+          <thead><tr><th></th><th colspan="3">Predicted</th></tr><tr><th>Actual</th>{% for c in m.classes %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+          <tbody>{% for row in r.confusion_matrix %}{% set i = loop.index0 %}<tr><th>{{ m.classes[i] }}</th>
+            {% for v in row %}<td class="{{ 'table-success fw-bold' if loop.index0 == i }}">{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
+        <div class="tiny text-muted">Rows = actual class, columns = predicted class. Diagonal = correct predictions.</div></div></div></div>
+      <div class="col-lg-7"><div class="card h-100"><div class="card-header">Classification report – {{ name }}</div>
+        <div class="table-responsive"><table class="table table-sm mb-0">
+          <thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th><th>Support</th></tr></thead>
+          <tbody>{% for key in m.classes + ['macro avg', 'weighted avg'] %}{% set row = r.classification_report[key] %}
+            <tr class="{{ 'fw-semibold table-light' if key not in m.classes }}"><td>{{ key }}</td><td>{{ '%.3f'|format(row.precision) }}</td>
+              <td>{{ '%.3f'|format(row.recall) }}</td><td>{{ '%.3f'|format(row['f1-score']) }}</td><td>{{ row.support|int }}</td></tr>{% endfor %}
+            <tr><td>accuracy</td><td colspan="2"></td><td>{{ '%.3f'|format(r.classification_report.accuracy) }}</td><td>{{ r.classification_report['macro avg'].support|int }}</td></tr>
+          </tbody></table></div>
+        {% if r.feature_importance %}<div class="card-body border-top"><div class="small fw-semibold mb-2">Relative feature influence</div>
+          {% for f, v in r.feature_importance.items()|sort(attribute='1', reverse=true) %}
+          <div class="d-flex align-items-center gap-2 small mb-1"><span style="width:150px">{{ cfg.FEATURE_LABELS[f] }}</span>
+            <div class="progress flex-fill" style="height:8px"><div class="progress-bar" style="width:{{ v*100 }}%"></div></div><span>{{ '%.0f'|format(v*100) }}%</span></div>{% endfor %}</div>{% endif %}
+      </div></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const M = {{ m|tojson }};
+const names = Object.keys(M.models);
+new Chart(document.getElementById("cmpChart"), { type: "bar",
+  data: { labels: names, datasets: [
+    { label: "Accuracy", data: names.map(n => M.models[n].accuracy), backgroundColor: "#3f3d9e" },
+    { label: "Precision", data: names.map(n => M.models[n].precision_macro), backgroundColor: "#0d9488" },
+    { label: "Recall", data: names.map(n => M.models[n].recall_macro), backgroundColor: "#f59e0b" },
+    { label: "F1", data: names.map(n => M.models[n].f1_macro), backgroundColor: "#dc2626" }]},
+  options: { maintainAspectRatio: false, scales: { y: { min: 0, max: 1 } } } });
+</script>
+{% endblock %}

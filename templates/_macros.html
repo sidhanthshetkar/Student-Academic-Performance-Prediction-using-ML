@@ -1,0 +1,41 @@
+{% macro label_badge(label) %}
+  {% if label %}<span class="lab lab-{{ label }}">{{ label }}</span>{% else %}<span class="lab lab-None">Not predicted</span>{% endif %}
+{% endmacro %}
+
+{% macro factor_bars(breakdown) %}
+  {% for b in breakdown %}
+  <div class="mb-3">
+    <div class="d-flex justify-content-between small">
+      <span class="fw-semibold">{{ b.label }}</span>
+      <span>{{ b.value }}{% if b.factor == 'attendance' or b.factor == 'previous_semester' %}%{% elif b.factor == 'study_hours' %} h{% else %} / {{ b.max }}{% endif %}
+        · <span class="status status-{{ b.status.split()[0] }}">{{ b.status }}</span></span>
+    </div>
+    <div class="progress" style="height:10px"><div class="progress-bar bar-{{ b.status.split()[0] }}" style="width: {{ b.percent }}%"></div></div>
+    {% if b.note %}<div class="text-muted tiny">{{ b.note }}</div>{% endif %}
+  </div>
+  {% endfor %}
+{% endmacro %}
+
+{% macro recommendations(recs) %}
+  {% for r in recs %}
+  <div class="rec rec-{{ r.priority }}">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-1">
+      <h6 class="mb-1"><span class="rec-num">{{ loop.index }}</span> {{ r.title }}</h6>
+      <span class="prio prio-{{ r.priority }}">{{ r.priority }} priority</span>
+    </div>
+    <div class="small text-muted mb-2">Current: <strong>{{ r.current }}</strong>{% if r.target %} · Suggested target: <strong>{{ r.target }}</strong>{% endif %}</div>
+    <ul class="mb-2 small">{% for a in r.actions %}<li>{{ a }}</li>{% endfor %}</ul>
+    <div class="why"><i class="fa-regular fa-lightbulb me-1"></i><strong>Why:</strong> {{ r.reason }}</div>
+  </div>
+  {% endfor %}
+{% endmacro %}
+
+{% macro field(name, label, form, errors, type='number', min=None, max=None, step=None, hint=None) %}
+  <label class="form-label fw-semibold" for="{{ name }}">{{ label }}</label>
+  <input class="form-control {{ 'is-invalid' if errors.get(name) }}" id="{{ name }}" name="{{ name }}" type="{{ type }}"
+         value="{{ form.get(name, '') if form.get(name, '') is not none else '' }}" required
+         {% if min is not none %}min="{{ min }}"{% endif %} {% if max is not none %}max="{{ max }}"{% endif %}
+         {% if step %}step="{{ step }}"{% endif %}>
+  {% if hint %}<div class="form-text">{{ hint }}</div>{% endif %}
+  <div class="invalid-feedback">{{ errors.get(name) or 'Please enter a valid value.' }}</div>
+{% endmacro %}

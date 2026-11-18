@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% from "_macros.html" import label_badge, factor_bars, recommendations %}
+{% block title %}Student analysis{% endblock %}
+{% block content %}
+<h2 class="mb-3"><i class="fa-solid fa-magnifying-glass-chart text-primary me-2"></i>Student performance analysis</h2>
+
+<div class="card p-3 mb-4">
+  <label class="form-label fw-semibold" for="pick">Choose a student</label>
+  <select id="pick" class="form-select" onchange="if(this.value) location.href='{{ url_for('analysis_index') }}/'+this.value">
+    <option value="">— Select —</option>
+    {% for s in students %}<option value="{{ s.id }}" {{ 'selected' if selected and selected.id == s.id }}>{{ s.roll_number }} – {{ s.name }}</option>{% endfor %}
+  </select>
+</div>
+
+{% if not students %}
+<div class="card"><div class="empty-state"><i class="fa-solid fa-user-graduate"></i><h5>No students available</h5>
+  <p>Add students first, then return here to analyse them.</p><a href="{{ url_for('student_add') }}" class="btn btn-brand">Add student</a></div></div>
+{% elif not data %}
+<div class="card"><div class="empty-state"><i class="fa-solid fa-hand-pointer"></i><h5>Select a student</h5>
+  <p class="mb-0">Pick a student above to see their summary, class comparison and recommendations.</p></div></div>
+{% else %}
+{% set st = data.student %}
+<div class="card p-4 mb-4">
+  <div class="d-flex justify-content-between flex-wrap gap-3 align-items-center">
+    <div><h4 class="mb-1"><a class="text-decoration-none" href="{{ url_for('student_profile', student_id=st.id) }}">{{ st.name }}</a></h4>
+      <div class="text-muted">{{ st.roll_number }} · {{ st.department }} · Semester {{ st.semester }}</div></div>
+    <div class="d-flex gap-4 text-center">
+      <div><div class="small text-muted">Predicted</div><div>{{ label_badge(data.predicted_label) }}</div></div>
+      <div><div class="small text-muted">Avg recorded marks</div><div class="fs-4 fw-bold">{{ data.marks_percentage }}%</div></div>
+      <div><div class="small text-muted">Class size</div><div class="fs-4 fw-bold">{{ data.class_size }}</div></div>
+    </div>
+  </div>
+  <hr>
+  <div class="row">
+    <div class="col-md-6"><span class="text-success fw-semibold"><i class="fa-solid fa-arrow-up me-1"></i>Strongest recorded factor:</span>
+      {{ data.strongest.label }} ({{ data.strongest.percent }}% of target)</div>
+    <div class="col-md-6"><span class="text-danger fw-semibold"><i class="fa-solid fa-arrow-down me-1"></i>Weakest recorded factor:</span>
+      {{ data.weakest.label }} ({{ data.weakest.percent }}% of target)</div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-5"><div class="card h-100"><div class="card-header">Academic factor breakdown</div><div class="card-body">{{ factor_bars(data.breakdown) }}</div></div></div>
+  <div class="col-lg-7"><div class="card h-100"><div class="card-header">Comparison with class average</div><div class="card-body">
+    {% if data.comparison %}
+      <div class="chart-box"><canvas id="radar"></canvas></div>
+      <div class="table-responsive mt-3"><table class="table table-sm mb-0">
+        <thead><tr><th>Factor</th><th>Student</th><th>Class avg</th><th>Difference</th></tr></thead>
+        <tbody>{% for c in data.comparison %}<tr><td>{{ c.label }}</td><td>{{ c.student }}</td><td>{{ c.class_avg }}</td>
+          <td class="{{ 'text-success' if c.diff > 0 else 'text-danger' if c.diff < 0 else '' }}">{{ '%+.1f'|format(c.diff) }}</td></tr>{% endfor %}</tbody></table></div>
+      <div class="tiny text-muted mt-1">Class average includes all {{ data.class_size }} students in the database.</div>
+    {% else %}<div class="empty-state py-4"><p class="mb-0">{{ data.comparison_message }}</p></div>{% endif %}
+  </div></div></div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">Attendance vs marks (all students)</div><div class="card-body">
+    <div class="chart-box"><canvas id="attChart"></canvas></div><p class="small text-muted mt-2 mb-0">{{ data.corr_attendance.message }}</p></div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">Study hours vs marks (all students)</div><div class="card-body">
+    <div class="chart-box"><canvas id="studyChart"></canvas></div><p class="small text-muted mt-2 mb-0">{{ data.corr_study.message }}</p></div></div></div>
+</div>
+
+<div class="card mb-4"><div class="card-header">Personalised recommendations <span class="text-muted small fw-normal">(priority order)</span></div>
+  <div class="card-body">{{ recommendations(data.recommendations) }}
+    <p class="disclaimer mb-0">Recommendations describe recorded academic factors only and say nothing about ability or future outcomes.</p></div></div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if data %}
+<script>
+const A = {{ data|tojson }};
+const me = A.student.id;
+function dots(points) { return [
+  { label: "Other students", data: points.filter(p => p.id !== me), backgroundColor: "#9ca3af99", pointRadius: 3 },
+  { label: "This student", data: points.filter(p => p.id === me), backgroundColor: "#dc2626", pointRadius: 8, pointStyle: "triangle" }]; }
+function sc(id, pts, xt) {
+  new Chart(document.getElementById(id), { type: "scatter", data: { datasets: dots(pts) },
+    options: { maintainAspectRatio: false, scales: { x: { title: { display: true, text: xt } }, y: { min: 0, max: 100, title: { display: true, text: "Average marks (%)" } } } } });
+}
+sc("attChart", A.scatter_attendance, "Attendance (%)");
+sc("studyChart", A.scatter_study, "Study hours per day");
+
+if (A.comparison) {
+  new Chart(document.getElementById("radar"), { type: "radar",
+    data: { labels: A.comparison.map(c => c.label), datasets: [
+      { label: A.student.name, data: A.comparison.map(c => c.student_pct), borderColor: "#3f3d9e", backgroundColor: "#3f3d9e33" },
+      { label: "Class average", data: A.comparison.map(c => c.avg_pct), borderColor: "#0d9488", backgroundColor: "#0d948822" }]},
+    options: { maintainAspectRatio: false, scales: { r: { min: 0, max: 100 } } } });
+}
+</script>
+{% endif %}
+{% endblock %}

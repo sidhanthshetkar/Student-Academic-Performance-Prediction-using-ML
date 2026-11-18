@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import label_badge %}
+{% block title %}Students{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <h2 class="mb-0"><i class="fa-solid fa-users text-primary me-2"></i>Students</h2>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('data_page') }}" class="btn btn-outline-secondary"><i class="fa-solid fa-file-csv me-1"></i>Import / Export</a>
+    <a href="{{ url_for('student_add') }}" class="btn btn-brand"><i class="fa-solid fa-plus me-1"></i>Add student</a>
+  </div>
+</div>
+
+<form class="card p-3 mb-3" method="get">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4"><label class="form-label small mb-1">Search name or roll number</label>
+      <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="e.g. Asha or CS2026001"></div>
+    <div class="col-md-2"><label class="form-label small mb-1">Department</label>
+      <select name="department" class="form-select"><option value="">All</option>
+        {% for d in departments %}<option {{ 'selected' if d == dept }}>{{ d }}</option>{% endfor %}</select></div>
+    <div class="col-md-2"><label class="form-label small mb-1">Semester</label>
+      <select name="semester" class="form-select"><option value="">All</option>
+        {% for s in semesters %}<option value="{{ s }}" {{ 'selected' if sem == s|string }}>{{ s }}</option>{% endfor %}</select></div>
+    <div class="col-md-2"><label class="form-label small mb-1">Predicted</label>
+      <select name="performance" class="form-select"><option value="">All</option>
+        {% for c in classes %}<option {{ 'selected' if perf == c }}>{{ c }}</option>{% endfor %}</select></div>
+    <div class="col-md-2 d-flex gap-2">
+      <button class="btn btn-brand flex-fill">Filter</button>
+      <a href="{{ url_for('students') }}" class="btn btn-outline-secondary" title="Clear"><i class="fa-solid fa-xmark"></i></a></div>
+  </div>
+</form>
+
+<div class="card">
+  {% if students %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead><tr><th>Roll no.</th><th>Name</th><th>Department</th><th>Sem</th><th>Attend.</th><th>Internal</th>
+        <th>Assign.</th><th>Prev %</th><th>Study h</th><th>Practical</th><th>Predicted</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+      {% for s in students %}
+        <tr>
+          <td>{{ s.roll_number }}</td>
+          <td><a class="fw-semibold text-decoration-none" href="{{ url_for('student_profile', student_id=s.id) }}">{{ s.name }}</a></td>
+          <td>{{ s.department }}</td><td>{{ s.semester }}</td><td>{{ s.attendance }}%</td>
+          <td>{{ s.internal_marks }}/{{ cfg.MAX_INTERNAL }}</td><td>{{ s.assignment_marks }}/{{ cfg.MAX_ASSIGNMENT }}</td>
+          <td>{{ s.previous_semester }}</td><td>{{ s.study_hours }}</td><td>{{ s.practical_marks }}/{{ cfg.MAX_PRACTICAL }}</td>
+          <td>{{ label_badge(s.predicted_label) }}</td>
+          <td class="text-end text-nowrap">
+            <a class="btn btn-sm btn-outline-primary" title="Profile" href="{{ url_for('student_profile', student_id=s.id) }}"><i class="fa-solid fa-eye"></i></a>
+            <a class="btn btn-sm btn-outline-secondary" title="Edit" href="{{ url_for('student_edit', student_id=s.id) }}"><i class="fa-solid fa-pen"></i></a>
+            <form class="d-inline" method="post" action="{{ url_for('student_delete', student_id=s.id) }}"
+                  data-confirm="Delete {{ s.name }} and all of their predictions? This cannot be undone.">
+              <button class="btn btn-sm btn-outline-danger" title="Delete"><i class="fa-solid fa-trash"></i></button></form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer bg-transparent small text-muted">{{ students|length }} student(s) shown</div>
+  {% else %}
+  <div class="empty-state"><i class="fa-solid fa-user-graduate"></i>
+    <h5>No students found</h5>
+    <p>{% if q or dept or sem or perf %}No records match your search or filters.{% else %}Add a student or import a CSV file to get started.{% endif %}</p>
+    <a href="{{ url_for('student_add') }}" class="btn btn-brand me-2">Add student</a>
+    <a href="{{ url_for('data_page') }}" class="btn btn-outline-secondary">Import CSV</a></div>
+  {% endif %}
+</div>
+{% endblock %}

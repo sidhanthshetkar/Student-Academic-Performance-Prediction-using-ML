@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}My Student Dashboard{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2"><div><span class="badge bg-primary-subtle text-primary">Student portal</span><h1 class="h2 fw-bold mt-2 mb-1">Welcome, {{ s.name }}</h1><p class="text-muted mb-0">Your personal academic performance overview</p></div><span class="badge bg-light text-dark fs-6">{{ s.roll_number }}</span></div>
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><div class="card stat h-100"><div class="name">Attendance</div><div class="value">{{ '%.1f'|format(s.attendance) }}%</div></div></div>
+  <div class="col-md-4"><div class="card stat h-100"><div class="name">Marks average</div><div class="value">{{ '%.1f'|format(s.marks_percentage) }}%</div></div></div>
+  <div class="col-md-4"><div class="card stat h-100"><div class="name">Predicted performance</div><div class="value">{% if s.predicted_label %}<span class="lab lab-{{ s.predicted_label }}">{{ s.predicted_label }}</span>{% else %}<span class="text-muted">Not available</span>{% endif %}</div></div></div>
+</div>
+<div class="row g-4">
+  <div class="col-lg-7"><div class="card p-4 h-100"><h5 class="fw-bold mb-3"><i class="fa-solid fa-book-open text-primary me-2"></i>Academic details</h5><div class="row g-3">
+    <div class="col-sm-6"><span class="text-muted small">Department</span><div class="fw-semibold">{{ s.department }}</div></div>
+    <div class="col-sm-6"><span class="text-muted small">Semester</span><div class="fw-semibold">{{ s.semester }}</div></div>
+    <div class="col-sm-6"><span class="text-muted small">Internal marks</span><div class="fw-semibold">{{ s.internal_marks }} / {{ cfg.MAX_INTERNAL }}</div></div>
+    <div class="col-sm-6"><span class="text-muted small">Assignment marks</span><div class="fw-semibold">{{ s.assignment_marks }} / {{ cfg.MAX_ASSIGNMENT }}</div></div>
+    <div class="col-sm-6"><span class="text-muted small">Previous semester</span><div class="fw-semibold">{{ s.previous_semester }}%</div></div>
+    <div class="col-sm-6"><span class="text-muted small">Practical marks</span><div class="fw-semibold">{{ s.practical_marks }} / {{ cfg.MAX_PRACTICAL }}</div></div>
+    <div class="col-sm-6"><span class="text-muted small">Study hours per day</span><div class="fw-semibold">{{ s.study_hours }}</div></div>
+  </div></div></div>
+  <div class="col-lg-5"><div class="card p-4 h-100"><h5 class="fw-bold mb-3"><i class="fa-solid fa-lightbulb text-warning me-2"></i>Recommendations</h5>{% if recs %}{% for rec in recs %}<div class="rec rec-{{ rec.priority }}"><div class="d-flex justify-content-between gap-2"><div class="fw-semibold">{{ rec.title }}</div><span class="prio prio-{{ rec.priority }}">{{ rec.priority }}</span></div><div class="small text-muted mt-1">{{ rec.reason }}</div><ul class="small mt-2 mb-0">{% for action in rec.actions %}<li>{{ action }}</li>{% endfor %}</ul></div>{% endfor %}{% else %}<p class="text-muted">No recommendations available yet.</p>{% endif %}</div></div>
+</div>
+<p class="disclaimer mt-4"><i class="fa-solid fa-circle-info me-1"></i>Performance predictions are estimates from a model trained on synthetic demonstration data. Discuss academic concerns with your teacher.</p>
+{% endblock %}

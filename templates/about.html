@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}About{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="fa-solid fa-circle-info text-primary me-2"></i>About the project</h2>
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card p-4 mb-4">
+      <h5>Purpose</h5>
+      <p>Predict a student's academic performance category and suggest targeted improvements, helping students
+        recognise weaknesses and helping teachers understand class-level patterns.</p>
+      <h5 class="mt-3">Technology stack</h5>
+      <ul class="mb-0">
+        <li><strong>Frontend:</strong> HTML5, CSS3, JavaScript, Bootstrap 5, Chart.js, Font Awesome</li>
+        <li><strong>Backend:</strong> Python, Flask, REST-style JSON APIs</li>
+        <li><strong>Machine learning:</strong> scikit-learn, pandas, NumPy</li>
+        <li><strong>Database:</strong> SQLite with SQLAlchemy</li>
+      </ul>
+    </div>
+    <div class="card p-4">
+      <h5>Algorithms compared</h5>
+      <p class="mb-1"><strong>Decision Tree</strong> – interpretable rule-like splits.</p>
+      <p class="mb-1"><strong>Logistic Regression</strong> – linear probabilistic model (features are standardised).</p>
+      <p class="mb-0"><strong>Random Forest</strong> – ensemble of trees that reduces overfitting.</p>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card p-4 mb-4 border-start border-warning border-4">
+      <h5><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Important limitations</h5>
+      <ul class="small mb-0">
+        <li>The training dataset is <strong>synthetic</strong> and does not represent real students.</li>
+        <li>Training labels come from a documented demonstration scoring rule (plus random noise), not real outcomes.</li>
+        <li>Replace or validate these rules with historical results before any real deployment.</li>
+        <li>Probabilities are model estimates, not guarantees of success.</li>
+        <li>Recommendations reflect recorded academic factors only; they make no claim about ability, personality or future.</li>
+      </ul>
+    </div>
+    <div class="card p-4">
+      <h5>Future work</h5>
+      <ul class="small mb-0">
+        <li>Train on real, anonymised institutional data.</li>
+        <li>Add login roles for students and teachers.</li>
+        <li>Plug a language model into the modular recommender.</li>
+        <li>Add subject-wise marks and early-warning alerts.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

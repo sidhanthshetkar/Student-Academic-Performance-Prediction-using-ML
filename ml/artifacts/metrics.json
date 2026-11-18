@@ -1,0 +1,222 @@
+{
+  "selected_model": "Logistic Regression",
+  "selection_criterion": "highest mean macro-F1 in 5-fold stratified cross-validation on the training split",
+  "trained_at": "2026-10-30T20:49:16",
+  "dataset": {
+    "type": "SYNTHETIC (generated; not real student data)",
+    "rows": 1500,
+    "train_rows": 1200,
+    "test_rows": 300,
+    "class_counts": {
+      "Medium": 508,
+      "High": 498,
+      "Low": 494
+    }
+  },
+  "labelling_note": "Labels come from a documented demonstration scoring rule plus random noise (see ml/generate_dataset.py). Validate against real outcomes before practical use.",
+  "classes": [
+    "Low",
+    "Medium",
+    "High"
+  ],
+  "models": {
+    "Decision Tree": {
+      "cv_f1_macro_mean": 0.8017,
+      "cv_f1_macro_std": 0.0221,
+      "accuracy": 0.78,
+      "precision_macro": 0.7888,
+      "recall_macro": 0.7806,
+      "f1_macro": 0.7825,
+      "confusion_matrix": [
+        [
+          74,
+          25,
+          0
+        ],
+        [
+          11,
+          74,
+          17
+        ],
+        [
+          0,
+          13,
+          86
+        ]
+      ],
+      "classification_report": {
+        "Low": {
+          "precision": 0.8705882352941177,
+          "recall": 0.7474747474747475,
+          "f1-score": 0.8043478260869565,
+          "support": 99.0
+        },
+        "Medium": {
+          "precision": 0.6607142857142857,
+          "recall": 0.7254901960784313,
+          "f1-score": 0.6915887850467289,
+          "support": 102.0
+        },
+        "High": {
+          "precision": 0.8349514563106796,
+          "recall": 0.8686868686868687,
+          "f1-score": 0.8514851485148515,
+          "support": 99.0
+        },
+        "accuracy": 0.78,
+        "macro avg": {
+          "precision": 0.7887513257730276,
+          "recall": 0.7805506040800158,
+          "f1-score": 0.7824739198828455,
+          "support": 300.0
+        },
+        "weighted avg": {
+          "precision": 0.7874709553724402,
+          "recall": 0.78,
+          "f1-score": 0.7815650685344845,
+          "support": 300.0
+        }
+      },
+      "feature_importance": {
+        "attendance": 0.1173,
+        "internal_marks": 0.3984,
+        "assignment_marks": 0.0358,
+        "previous_semester": 0.3221,
+        "study_hours": 0.0875,
+        "practical_marks": 0.0389
+      }
+    },
+    "Logistic Regression": {
+      "cv_f1_macro_mean": 0.8735,
+      "cv_f1_macro_std": 0.0162,
+      "accuracy": 0.85,
+      "precision_macro": 0.8504,
+      "recall_macro": 0.8508,
+      "f1_macro": 0.8505,
+      "confusion_matrix": [
+        [
+          88,
+          11,
+          0
+        ],
+        [
+          12,
+          79,
+          11
+        ],
+        [
+          0,
+          11,
+          88
+        ]
+      ],
+      "classification_report": {
+        "Low": {
+          "precision": 0.88,
+          "recall": 0.8888888888888888,
+          "f1-score": 0.8844221105527639,
+          "support": 99.0
+        },
+        "Medium": {
+          "precision": 0.7821782178217822,
+          "recall": 0.7745098039215687,
+          "f1-score": 0.7783251231527094,
+          "support": 102.0
+        },
+        "High": {
+          "precision": 0.8888888888888888,
+          "recall": 0.8888888888888888,
+          "f1-score": 0.8888888888888888,
+          "support": 99.0
+        },
+        "accuracy": 0.85,
+        "macro avg": {
+          "precision": 0.8503557022368904,
+          "recall": 0.8507625272331154,
+          "f1-score": 0.8505453741981207,
+          "support": 300.0
+        },
+        "weighted avg": {
+          "precision": 0.8496739273927393,
+          "recall": 0.85,
+          "f1-score": 0.8498231716876665,
+          "support": 300.0
+        }
+      },
+      "feature_importance": {
+        "attendance": 0.1829,
+        "internal_marks": 0.2316,
+        "assignment_marks": 0.1262,
+        "previous_semester": 0.2012,
+        "study_hours": 0.1549,
+        "practical_marks": 0.1031
+      }
+    },
+    "Random Forest": {
+      "cv_f1_macro_mean": 0.8536,
+      "cv_f1_macro_std": 0.0273,
+      "accuracy": 0.84,
+      "precision_macro": 0.8463,
+      "recall_macro": 0.8403,
+      "f1_macro": 0.8423,
+      "confusion_matrix": [
+        [
+          83,
+          16,
+          0
+        ],
+        [
+          10,
+          83,
+          9
+        ],
+        [
+          0,
+          13,
+          86
+        ]
+      ],
+      "classification_report": {
+        "Low": {
+          "precision": 0.8924731182795699,
+          "recall": 0.8383838383838383,
+          "f1-score": 0.8645833333333334,
+          "support": 99.0
+        },
+        "Medium": {
+          "precision": 0.7410714285714286,
+          "recall": 0.8137254901960784,
+          "f1-score": 0.7757009345794392,
+          "support": 102.0
+        },
+        "High": {
+          "precision": 0.9052631578947369,
+          "recall": 0.8686868686868687,
+          "f1-score": 0.8865979381443299,
+          "support": 99.0
+        },
+        "accuracy": 0.84,
+        "macro avg": {
+          "precision": 0.8462692349152451,
+          "recall": 0.8402653990889286,
+          "f1-score": 0.8422940686857009,
+          "support": 300.0
+        },
+        "weighted avg": {
+          "precision": 0.845217256851807,
+          "recall": 0.84,
+          "f1-score": 0.8416281373446381,
+          "support": 300.0
+        }
+      },
+      "feature_importance": {
+        "attendance": 0.1821,
+        "internal_marks": 0.2471,
+        "assignment_marks": 0.1002,
+        "previous_semester": 0.2512,
+        "study_hours": 0.0907,
+        "practical_marks": 0.1287
+      }
+    }
+  }
+}

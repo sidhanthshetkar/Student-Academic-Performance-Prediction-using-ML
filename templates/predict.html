@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}Prediction{% endblock %}
+{% block content %}
+<h2 class="mb-1"><i class="fa-solid fa-wand-magic-sparkles text-primary me-2"></i>Performance prediction</h2>
+<p class="text-muted">Active model: <strong>{{ metrics.selected_model }}</strong>
+  (test accuracy {{ '%.1f'|format(metrics.models[metrics.selected_model].accuracy * 100) }}%,
+  macro-F1 {{ '%.2f'|format(metrics.models[metrics.selected_model].f1_macro) }}) · trained on <strong>synthetic</strong> data.</p>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <form id="predForm" class="card p-4 needs-validation" novalidate>
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="studentSelect">Student (optional – autofills the form)</label>
+        <select id="studentSelect" class="form-select">
+          <option value="">— Enter details manually —</option>
+          {% for s in students %}
+          <option value="{{ s.id }}" {{ 'selected' if selected == s.id }}
+            {% for f in cfg.FEATURES %}data-{{ f|replace('_','-') }}="{{ s[f] }}" {% endfor %}>{{ s.roll_number }} – {{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="row g-3">
+        <div class="col-6">{{ field('attendance', 'Attendance (%)', {}, {}, min=0, max=100, step='0.1') }}</div>
+        <div class="col-6">{{ field('study_hours', 'Study hours / day', {}, {}, min=0, max=24, step='0.1') }}</div>
+        <div class="col-6">{{ field('internal_marks', 'Internal (max ' ~ cfg.MAX_INTERNAL ~ ')', {}, {}, min=0, max=cfg.MAX_INTERNAL, step='0.1') }}</div>
+        <div class="col-6">{{ field('assignment_marks', 'Assignment (max ' ~ cfg.MAX_ASSIGNMENT ~ ')', {}, {}, min=0, max=cfg.MAX_ASSIGNMENT, step='0.1') }}</div>
+        <div class="col-6">{{ field('practical_marks', 'Practical (max ' ~ cfg.MAX_PRACTICAL ~ ')', {}, {}, min=0, max=cfg.MAX_PRACTICAL, step='0.1') }}</div>
+        <div class="col-6">{{ field('previous_semester', 'Previous sem (%)', {}, {}, min=0, max=cfg.MAX_PREVIOUS, step='0.1') }}</div>
+      </div>
+      <div id="formError" class="alert alert-danger mt-3 d-none"></div>
+      <div class="d-flex gap-2 mt-4">
+        <button class="btn btn-brand flex-fill" type="submit"><i class="fa-solid fa-bolt me-1"></i>Predict</button>
+        <button class="btn btn-outline-success" type="button" id="saveBtn" disabled><i class="fa-solid fa-floppy-disk me-1"></i>Save result</button>
+      </div>
+      <div class="tiny text-muted mt-2">Saving requires a student to be selected above.</div>
+    </form>
+  </div>
+
+  <div class="col-lg-7">
+    <div id="placeholder" class="card"><div class="empty-state"><i class="fa-solid fa-chart-line"></i>
+      <h5>No prediction yet</h5><p class="mb-0">Fill in the form and press <strong>Predict</strong>.</p></div></div>
+
+    <div id="resultArea" class="d-none">
+      <div class="row g-3 mb-3">
+        <div class="col-md-5"><div id="resultBox" class="result-box h-100">
+          <div class="small text-uppercase opacity-75">Predicted category</div>
+          <div class="big" id="resultLabel"></div>
+          <div class="small opacity-75" id="resultModel"></div></div></div>
+        <div class="col-md-7"><div class="card h-100"><div class="card-header">Model class scores</div>
+          <div class="card-body"><div id="probArea"></div>
+            <div class="tiny text-muted">Scores are the model's estimates for this input. They are not guaranteed chances of academic success.</div></div></div></div>
+      </div>
+      <div class="card mb-3"><div class="card-header">Input factor breakdown</div><div class="card-body" id="breakdown"></div></div>
+      <div class="card mb-3"><div class="card-header">Areas to improve &amp; recommendations</div><div class="card-body" id="recs"></div></div>
+    </div>
+
+    <div id="historyCard" class="card d-none"><div class="card-header">Previous predictions for this student</div>
+      <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>When</th><th>Result</th><th>Model</th><th>Source</th></tr></thead>
+        <tbody id="historyBody"></tbody></table></div></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const FEATURES = {{ cfg.FEATURES|tojson }};
+const form = document.getElementById("predForm");
+const select = document.getElementById("studentSelect");
+const saveBtn = document.getElementById("saveBtn");
+let lastInputs = null;
+
+function readInputs() { const o = {}; FEATURES.forEach(f => o[f] = form.elements[f].value); return o; }
+
+function fillFromStudent() {
+  const opt = select.selectedOptions[0];
+  if (opt && opt.value) FEATURES.forEach(f => form.elements[f].value = opt.getAttribute("data-" + f.replace(/_/g, "-")));
+  loadHistory();
+}
+select.addEventListener("change", fillFromStudent);
+if (select.value) fillFromStudent();
+
+async function loadHistory() {
+  const card = document.getElementById("historyCard");
+  if (!select.value) { card.classList.add("d-none"); return; }
+  const res = await fetch(`/api/students/${select.value}/predictions`);
+  const data = await res.json();
+  document.getElementById("historyBody").innerHTML = data.predictions.length ? data.predictions.slice(0, 10).map(p =>
+    `<tr><td>${p.created_at}</td><td><span class="lab lab-${p.predicted_label}">${p.predicted_label}</span></td>
+     <td class="small">${escapeHtml(p.model_name)}</td><td class="small">${p.source}</td></tr>`).join("")
+    : `<tr><td colspan="4" class="text-muted text-center py-3">No saved predictions for this student yet.</td></tr>`;
+  card.classList.remove("d-none");
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = document.getElementById("formError");
+  err.classList.add("d-none");
+  if (!form.checkValidity()) { form.classList.add("was-validated"); return; }
+  const res = await fetch("/api/predict", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(readInputs()) });
+  const data = await res.json();
+  if (!data.ok) { err.textContent = Object.values(data.errors).join(" "); err.classList.remove("d-none"); return; }
+  lastInputs = data.inputs;
+
+  document.getElementById("placeholder").classList.add("d-none");
+  document.getElementById("resultArea").classList.remove("d-none");
+  document.getElementById("resultBox").className = `result-box h-100 result-${data.label}`;
+  document.getElementById("resultLabel").textContent = data.label;
+  document.getElementById("resultModel").textContent = "Model: " + data.model_name;
+  document.getElementById("probArea").innerHTML = data.probabilities
+    ? ["Low", "Medium", "High"].map(c => `
+      <div class="mb-2"><div class="d-flex justify-content-between small"><span>${c}</span><span>${data.probabilities[c]}%</span></div>
+      <div class="progress" style="height:10px"><div class="progress-bar" style="width:${data.probabilities[c]}%;background:${COLORS[c]}"></div></div></div>`).join("")
+    : `<p class="text-muted small mb-0">This model does not provide class scores.</p>`;
+  document.getElementById("breakdown").innerHTML = renderFactorBars(data.breakdown);
+  document.getElementById("recs").innerHTML = renderRecommendations(data.recommendations);
+  saveBtn.disabled = !select.value;
+  saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i>Save result';
+});
+
+saveBtn.addEventListener("click", async () => {
+  if (!select.value || !lastInputs) return;
+  saveBtn.disabled = true;
+  const res = await fetch("/api/predictions", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...lastInputs, student_id: Number(select.value) }) });
+  const data = await res.json();
+  if (data.ok) { saveBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i>Saved'; loadHistory(); }
+  else { saveBtn.disabled = false; alert(data.error || "Could not save."); }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% from "_macros.html" import label_badge %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h2 class="mb-3"><i class="fa-solid fa-chart-pie text-primary me-2"></i>Dashboard</h2>
+
+{% if data.empty %}
+<div class="card"><div class="empty-state"><i class="fa-solid fa-database"></i>
+  <h5>No student records yet</h5>
+  <p>The dashboard is built from the students stored in the database. Add a student, import a CSV file,<br>
+     or run <code>python seed_demo.py</code> to load clearly-labelled demo records.</p>
+  <a href="{{ url_for('student_add') }}" class="btn btn-brand me-2">Add student</a>
+  <a href="{{ url_for('data_page') }}" class="btn btn-outline-secondary">Import CSV</a></div></div>
+{% else %}
+<div class="row g-3 mb-4">
+  {% set tiles = [('Total students', data.total, ''), ('Low performance', data.counts.Low, 'stat-low'),
+                  ('Medium performance', data.counts.Medium, 'stat-med'), ('High performance', data.counts.High, 'stat-high'),
+                  ('Avg attendance', data.avg_attendance ~ '%', ''),
+                  ('Avg internal marks', data.avg_internal ~ ' / ' ~ cfg.MAX_INTERNAL, ''),
+                  ('Avg study hours', data.avg_study ~ ' h/day', '')] %}
+  {% for name, value, cls in tiles %}
+  <div class="col-6 col-md-4 col-lg"><div class="card stat {{ cls }}"><div class="name">{{ name }}</div><div class="value">{{ value }}</div></div></div>
+  {% endfor %}
+</div>
+{% if data.unpredicted %}<div class="alert alert-warning py-2">{{ data.unpredicted }} student(s) have no prediction yet.</div>{% endif %}
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">Performance distribution</div>
+    <div class="card-body"><div class="chart-box"><canvas id="distChart"></canvas></div></div></div></div>
+  <div class="col-lg-8"><div class="card h-100"><div class="card-header">Performance comparison by predicted category</div>
+    <div class="card-body"><div class="chart-box"><canvas id="classChart"></canvas></div></div></div></div>
+</div>
+<div class="row g-4 mb-4">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">Attendance vs academic performance</div>
+    <div class="card-body"><div class="chart-box"><canvas id="attChart"></canvas></div>
+      <p class="small text-muted mt-2 mb-0">{{ data.corr_attendance.message }}</p></div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">Study hours vs academic performance</div>
+    <div class="card-body"><div class="chart-box"><canvas id="studyChart"></canvas></div>
+      <p class="small text-muted mt-2 mb-0">{{ data.corr_study.message }}</p></div></div></div>
+</div>
+<div class="row g-4 mb-4">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">Semester-wise performance</div>
+    <div class="card-body">
+      {% if data.semester_trend|length >= 2 %}<div class="chart-box"><canvas id="semChart"></canvas></div>
+      {% else %}<div class="empty-state py-4"><p class="mb-0">Trends need students from at least two semesters.
+        Current data covers {{ data.semester_trend|length }}.</p></div>{% endif %}
+    </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header d-flex justify-content-between">Recent predictions
+      <a href="{{ url_for('csv_predictions') }}" class="small fw-normal">Export CSV</a></div>
+    <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+      <thead><tr><th>Student</th><th>Result</th><th>Model</th><th>When</th></tr></thead>
+      <tbody>{% for p in recent %}
+        <tr><td><a class="text-decoration-none" href="{{ url_for('student_profile', student_id=p.student_id) }}">{{ p.student.name }}</a>
+              <div class="tiny text-muted">{{ p.student.roll_number }}</div></td>
+            <td>{{ label_badge(p.predicted_label) }}</td><td class="small">{{ p.model_name }}</td>
+            <td class="small">{{ p.created_at.strftime('%d %b %H:%M') }}</td></tr>
+      {% else %}<tr><td colspan="4" class="text-muted text-center py-3">No predictions yet.</td></tr>{% endfor %}</tbody>
+    </table></div></div></div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if not data.empty %}
+<script>
+const D = {{ data|tojson }};
+const labels = ["Low", "Medium", "High"];
+
+new Chart(document.getElementById("distChart"), {
+  type: "doughnut",
+  data: { labels, datasets: [{ data: labels.map(l => D.counts[l]), backgroundColor: labels.map(l => COLORS[l]) }] },
+  options: { maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
+});
+
+new Chart(document.getElementById("classChart"), {
+  type: "bar",
+  data: { labels, datasets: [
+    { label: "Avg attendance (%)", data: labels.map(l => D.by_class[l].attendance), backgroundColor: "#3f3d9e" },
+    { label: "Avg marks (%)", data: labels.map(l => D.by_class[l].marks_percentage), backgroundColor: "#0d9488" },
+    { label: "Avg study hours ×10", data: labels.map(l => D.by_class[l].study_hours === null ? null : D.by_class[l].study_hours * 10), backgroundColor: "#f59e0b" }
+  ]},
+  options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } },
+    plugins: { tooltip: { callbacks: { label: c => c.dataset.label.includes("hours")
+      ? `Avg study hours: ${(c.parsed.y / 10).toFixed(1)}` : `${c.dataset.label}: ${c.parsed.y}` } } } }
+});
+
+function scatter(id, points, xTitle) {
+  const groups = ["Low", "Medium", "High", "Unpredicted"];
+  new Chart(document.getElementById(id), {
+    type: "scatter",
+    data: { datasets: groups.map(g => ({ label: g, data: points.filter(p => p.label === g),
+      backgroundColor: COLORS[g] + "bb", pointRadius: 4 })).filter(d => d.data.length) },
+    options: { maintainAspectRatio: false, parsing: { xAxisKey: "x", yAxisKey: "y" },
+      scales: { x: { title: { display: true, text: xTitle } }, y: { title: { display: true, text: "Average marks (%)" }, min: 0, max: 100 } },
+      plugins: { tooltip: { callbacks: { label: c => `${c.raw.name}: (${c.raw.x}, ${c.raw.y})` } } } }
+  });
+}
+scatter("attChart", D.scatter_attendance, "Attendance (%)");
+scatter("studyChart", D.scatter_study, "Study hours per day");
+
+if (D.semester_trend.length >= 2) {
+  new Chart(document.getElementById("semChart"), {
+    type: "line",
+    data: { labels: D.semester_trend.map(t => "Sem " + t.semester), datasets: [
+      { label: "Avg marks (%)", data: D.semester_trend.map(t => t.marks_percentage), borderColor: "#0d9488", tension: .3 },
+      { label: "Avg attendance (%)", data: D.semester_trend.map(t => t.attendance), borderColor: "#3f3d9e", tension: .3 }
+    ]},
+    options: { maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
+  });
+}
+</script>
+{% endif %}
+{% endblock %}
